@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Response Rating</title>
+    <style>
+        :root {
+            --bg-primary: #121212;
+            --bg-secondary: #1e1e1e;
+            --bg-tertiary: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent: #7c4dff;
+            --accent-light: #9575ff;
+            --success: #00c853;
+            --error: #ff5252;
+            --card-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .welcome-screen, .prompt-screen, .thank-you-screen {
+            background-color: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            width: 100%;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .name-input {
+            margin: 1.5rem 0;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--text-secondary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.2);
+        }
+
+        .input-hint {
+            display: block;
+            margin-top: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .character-count {
+            text-align: right;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: var(--accent-light);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--bg-tertiary);
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--accent);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .prompt-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .prompt-text {
+            background-color: var(--bg-tertiary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .responses-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .responses-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .response-card {
+            background-color: var(--bg-tertiary);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .response-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--card-shadow);
+        }
+
+        .response-card.selected {
+            border-color: var(--accent);
+            background-color: rgba(124, 77, 255, 0.1);
+        }
+
+        .response-card.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--accent);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .response-text {
+            font-size: 1rem;
+            line-height: 1.5;
+            white-space: pre-wrap; /* This preserves whitespace and line breaks */
+            word-break: break-word; /* Prevents text from overflowing */
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        .action-left, .action-right {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .thank-you-message {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .thank-you-message h2 {
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .thank-you-message p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            .welcome-screen, .prompt-screen, .thank-you-screen {
+                padding: 1.5rem;
+            }
+
+            .actions {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .action-left, .action-right {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LLM Response Rating</h1>
+            <p class="subtitle">Help us evaluate AI-generated responses</p>
+        </header>
+
+        <!-- Welcome Screen -->
+        <div id="welcomeScreen" class="welcome-screen animate-in">
+            <h2>Welcome!</h2>
+            <p>Please enter your name to begin the evaluation process.</p>
+            <div class="name-input">
+                <input type="text" id="nameInput" placeholder="Enter your name" maxlength="30">
+                <span class="input-hint">Your name will be used to track your evaluations</span>
+                <div class="character-count">0 / 30</div>
+            </div>
+            <button id="startButton" disabled>Start Evaluation</button>
+        </div>
+
+        <!-- Prompt Screen -->
+        <div id="promptScreen" class="prompt-screen hidden">
+            <div class="progress-bar-container">
+                <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+            </div>
+            <div class="progress-text">
+                <span id="currentPromptNumber">0</span> of <span id="totalPrompts">5</span> prompts evaluated
+            </div>
+
+            <div class="prompt-container">
+                <h3>Prompt:</h3>
+                <div id="promptText" class="prompt-text"></div>
+            </div>
+
+            <h3>Responses:</h3>
+            <div class="responses-container">
+                <div id="response1" class="response-card" data-response-index="0">
+                    <div class="response-text"></div>
+                </div>
+                <div id="response2" class="response-card" data-response-index="1">
+                    <div class="response-text"></div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <div class="action-left">
+                    <button id="prevButton" class="secondary" disabled>Previous</button>
+                </div>
+                <div class="action-right">
+                    <button id="nextButton" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thank You Screen -->
+        <div id="thankYouScreen" class="thank-you-screen hidden">
+            <div class="thank-you-message">
+                <h2>Thank You!</h2>
+                <p>Your feedback is valuable for our research.</p>
+            </div>
+            <p>Would you like to evaluate more responses?</p>
+            <div class="actions">
+                <div style="display: flex; gap: 1rem; width: 100%; justify-content: center;">
+                    <button id="evaluateMoreButton">Yes, Evaluate More</button>
+                    <button id="finishButton" class="secondary">No, I'm Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            promptsPerSession: 5,
+            sessionTimeoutDays: 2,
+            maxNameLength: 30,
+            submitUrl: 'https://script.google.com/macros/s/AKfycbx9x39ccyM5eJQDrypcOCfublSUxFk1Rw_rXC1650xpnWjmzFtcQEp3WMNhijPWUzQv/exec' // Replace with your actual URL
+        };
+
+        // Sample data for testing (replace with actual data loading)
+        const SAMPLE_DATA = {
+            prompts: Array.from({ length: 100 }, (_, i) => ({
+                id: i + 1,
+                text: `This is a sample prompt ${i + 1}. It would contain a question or scenario for the LLMs to respond to.`,
+                responses: [
+                    {
+                        text: `This is a sample response from model 1 for prompt ${i + 1}. It would contain the actual response generated by the fine-tuned qwen model.`,
+                        model: 'qwen-2-1.5B-ft'
+                    },
+                    {
+                        text: `This is a sample response from model 2 for prompt ${i + 1}. It would contain the actual response generated by the gpt-4o-mini model.`,
+                        model: 'gpt-4o-mini'
+                    }
+                ]
+            }))
+        };
+
+        // State management
+        const state = {
+            userName: '',
+            currentPromptIndex: 0,
+            evaluatedPrompts: [],
+            currentSession: [],
+            selectedResponseIndex: null,
+            completedSessions: [],
+            usedPromptIds: new Set(),
+            sessionStartTime: null
+        };
+
+        // DOM Elements
+        const elements = {
+            welcomeScreen: document.getElementById('welcomeScreen'),
+            promptScreen: document.getElementById('promptScreen'),
+            thankYouScreen: document.getElementById('thankYouScreen'),
+            nameInput: document.getElementById('nameInput'),
+            characterCount: document.querySelector('.character-count'),
+            startButton: document.getElementById('startButton'),
+            progressBar: document.getElementById('progressBar'),
+            currentPromptNumber: document.getElementById('currentPromptNumber'),
+            totalPrompts: document.getElementById('totalPrompts'),
+            promptText: document.getElementById('promptText'),
+            response1: document.getElementById('response1'),
+            response2: document.getElementById('response2'),
+            prevButton: document.getElementById('prevButton'),
+            nextButton: document.getElementById('nextButton'),
+            evaluateMoreButton: document.getElementById('evaluateMoreButton'),
+            finishButton: document.getElementById('finishButton')
+        };
+
+        // Initialize application
+        function init() {
+            loadStateFromLocalStorage();
+            setupEventListeners();
+            updateCharacterCount();
+            loadDataFromFile();
+            checkExistingSession();
+            retryFailedSubmissions(); // Add this line to retry any failed submissions
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            elements.nameInput.addEventListener('input', handleNameInput);
+            elements.startButton.addEventListener('click', startEvaluation);
+            elements.response1.addEventListener('click', () => selectResponse(0));
+            elements.response2.addEventListener('click', () => selectResponse(1));
+            elements.prevButton.addEventListener('click', navigateToPrevPrompt);
+            elements.nextButton.addEventListener('click', navigateToNextPrompt);
+            elements.evaluateMoreButton.addEventListener('click', startNewSession);
+            elements.finishButton.addEventListener('click', finishEvaluation);
+        }
+
+        // Handle name input
+        function handleNameInput(e) {
+            state.userName = e.target.value.trim();
+            updateCharacterCount();
+            elements.startButton.disabled = state.userName.length === 0;
+        }
+
+        // Update character count display
+        function updateCharacterCount() {
+            const currentLength = elements.nameInput.value.length;
+            elements.characterCount.textContent = `${currentLength} / ${CONFIG.maxNameLength}`;
+        }
+
+        // Check if there's an existing session
+        function checkExistingSession() {
+            if (state.userName && state.currentSession.length > 0 && !isSessionExpired()) {
+                elements.nameInput.value = state.userName;
+                updateCharacterCount();
+                elements.startButton.disabled = false;
+            }
+        }
+
+        // Check if the current session has expired
+        function isSessionExpired() {
+            if (!state.sessionStartTime) return true;
+            
+            const now = new Date().getTime();
+            const sessionTime = new Date(state.sessionStartTime).getTime();
+            const timeoutMillis = CONFIG.sessionTimeoutDays * 24 * 60 * 60 * 1000;
+            
+            return (now - sessionTime) > timeoutMillis;
+        }
+
+        // Start evaluation process
+        function startEvaluation() {
+            if (state.currentSession.length === 0 || isSessionExpired()) {
+                // Start a new session
+                state.currentSession = [];
+                state.currentPromptIndex = 0;
+                state.sessionStartTime = new Date().getTime();
+                selectRandomPrompts();
+            }
+            
+            showScreen('promptScreen');
+            displayCurrentPrompt();
+            saveStateToLocalStorage();
+        }
+
+        // Select random prompts for this session
+        function selectRandomPrompts() {
+            const allPrompts = [...SAMPLE_DATA.prompts];
+            const availablePrompts = allPrompts.filter(prompt => !state.usedPromptIds.has(prompt.id));
+            
+            // If we've used all prompts or don't have enough, reset
+            if (availablePrompts.length < CONFIG.promptsPerSession) {
+                state.usedPromptIds.clear();
+                return selectRandomPrompts();
+            }
+            
+            // Shuffle available prompts and take the first N
+            const shuffled = shuffleArray(availablePrompts);
+            const selectedPrompts = shuffled.slice(0, CONFIG.promptsPerSession);
+            
+            state.evaluatedPrompts = selectedPrompts.map(prompt => {
+                // Mark this prompt as used
+                state.usedPromptIds.add(prompt.id);
+                
+                // Randomly order the responses
+                const shuffledResponses = shuffleArray([...prompt.responses]);
+                
+                return {
+                    promptId: prompt.id,
+                    promptText: prompt.text,
+                    responses: shuffledResponses,
+                    selectedResponseIndex: null
+                };
+            });
+        }
+
+        // Display the current prompt
+        function displayCurrentPrompt() {
+            if (state.evaluatedPrompts.length === 0) return;
+            
+            const currentPrompt = state.evaluatedPrompts[state.currentPromptIndex];
+            elements.promptText.textContent = currentPrompt.promptText;
+            
+            // Display responses with proper formatting for newlines
+            elements.response1.querySelector('.response-text').textContent = currentPrompt.responses[0].text;
+            elements.response2.querySelector('.response-text').textContent = currentPrompt.responses[1].text;
+            
+            // For special formatting if responses contain markdown-like content
+            // Uncomment this section if you need to render markdown (requires adding a markdown library)
+            /*
+            if (typeof marked !== 'undefined') {
+                elements.response1.querySelector('.response-text').innerHTML = marked.parse(currentPrompt.responses[0].text);
+                elements.response2.querySelector('.response-text').innerHTML = marked.parse(currentPrompt.responses[1].text);
+            }
+            */
+            
+            // Update selection state
+            elements.response1.classList.toggle('selected', currentPrompt.selectedResponseIndex === 0);
+            elements.response2.classList.toggle('selected', currentPrompt.selectedResponseIndex === 1);
+            
+            // Update progress
+            const progressPercentage = ((state.currentPromptIndex + 1) / CONFIG.promptsPerSession) * 100;
+            elements.progressBar.style.width = `${progressPercentage}%`;
+            elements.currentPromptNumber.textContent = state.currentPromptIndex + 1;
+            elements.totalPrompts.textContent = CONFIG.promptsPerSession;
+            
+            // Update button states
+            elements.prevButton.disabled = state.currentPromptIndex === 0;
+            elements.nextButton.disabled = currentPrompt.selectedResponseIndex === null;
+            
+            // Update navigation text based on progress
+            if (state.currentPromptIndex === CONFIG.promptsPerSession - 1) {
+                elements.nextButton.textContent = "Finish";
+            } else {
+                elements.nextButton.textContent = "Next";
+            }
+        }
+
+        // Select a response
+        function selectResponse(index) {
+            if (state.evaluatedPrompts.length === 0) return;
+            
+            const currentPrompt = state.evaluatedPrompts[state.currentPromptIndex];
+            currentPrompt.selectedResponseIndex = index;
+            
+            // Add to current session for tracking
+            const existingEntryIndex = state.currentSession.findIndex(entry => 
+                entry.promptId === currentPrompt.promptId);
+                
+            const responseData = {
+                promptId: currentPrompt.promptId,
+                selectedModel: currentPrompt.responses[index].model,
+                timestamp: new Date().toISOString()
+            };
+            
+            if (existingEntryIndex >= 0) {
+                state.currentSession[existingEntryIndex] = responseData;
+            } else {
+                state.currentSession.push(responseData);
+            }
+            
+            // Update UI
+            elements.response1.classList.toggle('selected', index === 0);
+            elements.response2.classList.toggle('selected', index === 1);
+            elements.nextButton.disabled = false;
+            
+            saveStateToLocalStorage();
+        }
+
+        // Navigate to previous prompt
+        function navigateToPrevPrompt() {
+            if (state.currentPromptIndex > 0) {
+                state.currentPromptIndex--;
+                displayCurrentPrompt();
+            }
+        }
+
+        // Navigate to next prompt
+        function navigateToNextPrompt() {
+            const currentPrompt = state.evaluatedPrompts[state.currentPromptIndex];
+            if (currentPrompt.selectedResponseIndex === null) return;
+            
+            if (state.currentPromptIndex < CONFIG.promptsPerSession - 1) {
+                state.currentPromptIndex++;
+                displayCurrentPrompt();
+            } else {
+                // Session complete
+                finishSession();
+            }
+        }
+
+        // Finish current evaluation session
+        function finishSession() {
+            state.completedSessions.push({
+                userName: state.userName,
+                sessionId: generateSessionId(),
+                completedAt: new Date().toISOString(),
+                evaluations: state.currentSession
+            });
+            
+            // Try to submit the data
+            submitEvaluationData();
+            
+            // Show thank you screen
+            showScreen('thankYouScreen');
+            saveStateToLocalStorage();
+        }
+
+        // Start a new evaluation session
+        function startNewSession() {
+            state.currentSession = [];
+            state.currentPromptIndex = 0;
+            state.sessionStartTime = new Date().getTime();
+            selectRandomPrompts();
+            showScreen('promptScreen');
+            displayCurrentPrompt();
+            saveStateToLocalStorage();
+        }
+
+        // Finish evaluation completely
+        function finishEvaluation() {
+            // Clear current session but keep completed sessions and user name
+            state.currentSession = [];
+            state.currentPromptIndex = 0;
+            state.evaluatedPrompts = [];
+            saveStateToLocalStorage();
+            showScreen('welcomeScreen');
+        }
+
+        // Submit evaluation data to backend
+        function submitEvaluationData() {
+            const lastSession = state.completedSessions[state.completedSessions.length - 1];
+            if (!lastSession) return;
+            
+            console.log('Submitting evaluation data:', lastSession);
+            
+            // Send data to Google Sheets
+            fetch(CONFIG.submitUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(lastSession)
+            }).then(response => {
+                console.log('Data submitted successfully');
+            }).catch(error => {
+                console.error('Error submitting data:', error);
+                // Store failed submissions for retry
+                const failedSubmissions = JSON.parse(localStorage.getItem('failedSubmissions') || '[]');
+                failedSubmissions.push(lastSession);
+                localStorage.setItem('failedSubmissions', JSON.stringify(failedSubmissions));
+            });
+        }
+
+        // Show a specific screen
+        function showScreen(screenId) {
+            elements.welcomeScreen.classList.add('hidden');
+            elements.promptScreen.classList.add('hidden');
+            elements.thankYouScreen.classList.add('hidden');
+            
+            document.getElementById(screenId).classList.remove('hidden');
+            document.getElementById(screenId).classList.add('animate-in');
+        }
+
+        // Generate unique session ID
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Utility function to shuffle an array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Save state to local storage
+        function saveStateToLocalStorage() {
+            const stateToSave = {
+                userName: state.userName,
+                currentPromptIndex: state.currentPromptIndex,
+                evaluatedPrompts: state.evaluatedPrompts,
+                currentSession: state.currentSession,
+                completedSessions: state.completedSessions,
+                usedPromptIds: [...state.usedPromptIds],
+                sessionStartTime: state.sessionStartTime
+            };
+            
+            localStorage.setItem('llmRatingState', JSON.stringify(stateToSave));
+        }
+
+        // Load state from local storage
+        function loadStateFromLocalStorage() {
+            const savedState = localStorage.getItem('llmRatingState');
+            if (!savedState) return;
+            
+            const parsedState = JSON.parse(savedState);
+            
+            state.userName = parsedState.userName || '';
+            state.currentPromptIndex = parsedState.currentPromptIndex || 0;
+            state.evaluatedPrompts = parsedState.evaluatedPrompts || [];
+            state.currentSession = parsedState.currentSession || [];
+            state.completedSessions = parsedState.completedSessions || [];
+            state.usedPromptIds = new Set(parsedState.usedPromptIds || []);
+            state.sessionStartTime = parsedState.sessionStartTime || null;
+            
+            // Check if session expired
+            if (isSessionExpired()) {
+                state.currentSession = [];
+                state.currentPromptIndex = 0;
+                state.evaluatedPrompts = [];
+                state.sessionStartTime = null;
+            }
+        }
+
+        // Load actual data from file
+        function loadDataFromFile() {
+            console.log('Attempting to load merged_prompts.json file...');
+        fetch('/merged_responses.json')
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                throw new Error(`Failed to load: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+        })
+        .then(data => {
+            console.log('Successfully loaded prompts:', data.prompts.length);
+            SAMPLE_DATA.prompts = data.prompts;
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+        });
+}
+
+        // Initialize the application
+        window.addEventListener('DOMContentLoaded', init);
+        
+        // Retry failed submissions
+        function retryFailedSubmissions() {
+            const failedSubmissions = JSON.parse(localStorage.getItem('failedSubmissions') || '[]');
+            if (failedSubmissions.length === 0) return;
+            
+            console.log(`Retrying ${failedSubmissions.length} failed submissions`);
+            
+            // Try to submit each failed submission
+            const stillFailed = [];
+            
+            failedSubmissions.forEach(submission => {
+                fetch(CONFIG.submitUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(submission)
+                }).catch(error => {
+                    // If still failing, keep in the failed list
+                    stillFailed.push(submission);
+                });
+            });
+            
+            // Update the failed submissions in localStorage
+            localStorage.setItem('failedSubmissions', JSON.stringify(stillFailed));
+        }
+    </script>
+</body>
+</html>
