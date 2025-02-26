@@ -743,7 +743,7 @@
         // Load actual data from file
         function loadDataFromFile() {
             console.log('Attempting to load merged_prompts.json file...');
-        fetch('/merged_responses.json')
+        fetch('/llm-eval/merged_responses.json')
             .then(response => {
                 console.log('Response status:', response.status);
                 if (!response.ok) {
